@@ -109,37 +109,42 @@ def process_yaml(filename, output_dir_name) -> List[BaseSerializer]:
 if __name__ == '__main__':
     # arg parse lots of stuff
     parser = argparse.ArgumentParser(description="")
+    parser.add_argument("live", help="Run live without rosbag", default=False)
     parser.add_argument("bag_file", help="Input ROS bag.")
     parser.add_argument("output_dir", help="Output directory.")
     parser.add_argument("config_file", help="Config File")
 
     args = parser.parse_args()
 
-    # start roscore and init the rosnode
-    # roscore_process = subprocess.Popen("roscore")
-    time.sleep(1)
-    rospy.init_node("bag_harvester", anonymous=True)
+    if not args.live:
+        # start roscore and init the rosnode
+        roscore_process = subprocess.Popen("roscore")
 
-    # ----------- serializing -------------------
-    # this creates a bunch of subscribers, needs to be after rospy.init
-    serializer_list = process_yaml(args.config_file, args.output_dir)
-
-    while not rospy.is_shutdown():
         time.sleep(1)
+        rospy.init_node("bag_harvester", anonymous=True)
 
-    # roslaunch all the goodies
-    # roslaunch_process = subprocess.Popen(["roslaunch", "ghost_master", "log_master.launch",
-    #                                       "use_rosbag:=false"], stdout=subprocess.DEVNULL)
+        # ----------- serializing -------------------
+        # this creates a bunch of subscribers, needs to be after rospy.init
+        serializer_list = process_yaml(args.config_file, args.output_dir)
 
-    # start the rosbag to serialize from
-    # rosbag_process = subprocess.run(["rosbag", "play", "--clock", "-r", "0.25", args.bag_file])
+        # start the rosbag to serialize from
+        rosbag_process = subprocess.run(["rosbag", "play", "--clock", "-r", "0.25", args.bag_file])
 
-    # we did it!
-    # rospy.logwarn("Completed return code for rosbag: {}".format(rosbag_process.returncode))
+        # we did it!
+        rospy.logwarn("Completed return code for rosbag: {}".format(rosbag_process.returncode))
 
-    # now kill everything
-    # if rosbag_process.returncode == 0:
-    #     rospy.logwarn("Completed bag successfully!")
-    #     subprocess.Popen(['pkill', '-f', 'ros'])
+        # now kill everything
+        if rosbag_process.returncode == 0:
+            rospy.logwarn("Completed bag successfully!")
+            subprocess.Popen(['pkill', '-f', 'ros'])
 
-        # print("Killed all ROS")
+        print("Killed all ROS")
+
+    else:
+        time.sleep(1)
+        rospy.init_node("bag_harvester", anonymous=True)
+
+        serializer_list = process_yaml(args.config_file, args.output_dir)
+
+        while not rospy.is_shutdown():
+            time.sleep(1)
