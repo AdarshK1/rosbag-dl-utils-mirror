@@ -1,0 +1,28 @@
+- odom_out:
+     topic_name: /unity_ros/husky/TrueState/odom
+     type: Odometry
+- rgb_out:
+    topic_name: /husky/camera/image_raw
+    type: Image
+    is_depth: False
+    channels: 3
+- semantic_out:
+    topic_name: /husky/semantic_camera/image_raw
+    type: Image
+    is_depth: False
+    channels: 3
+- occupancy:
+    topic_name: /map
+    type: Map
+- goal:
+    topic_name: /move_base_simple/goal
+    type: Pose
+- global_plan:
+      topic_name: /move_base/GlobalPlanner/plan
+      type: Path
+- local_plan:
+    topic_name: /move_base/TrajectoryPlannerROS/local_plan
+    type: Path
+- gt_global_plan:
+    topic_name: /ground_truth_planning/move_base/GlobalPlanner/plan
+    type: Path

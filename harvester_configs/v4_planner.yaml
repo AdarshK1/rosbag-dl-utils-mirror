@@ -1,0 +1,17 @@
+- odom_out:
+     topic_name: /vision60/vio_node/odom_flu
+     type: Odometry
+- y_vec:
+      topic_name: /mcu/state/y_vec
+      type: FloatArray
+- u_vec:
+    topic_name: /mcu/command/ctrl_vec
+    type: FloatArray
+- twist:
+    topic_name: /vision60/remote/twist
+    type: Twist
+- heightmap:
+    topic_name: /tm/image/multi_terrain_map
+    type: Image
+    is_depth: true
+    channels: 4

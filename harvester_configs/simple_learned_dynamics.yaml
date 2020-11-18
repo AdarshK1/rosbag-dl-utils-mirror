@@ -1,0 +1,9 @@
+- odom_out:
+     topic_name: /vision60/vio_node/odom_flu
+     type: Odometry
+- toes:
+    topic_name: /mcu/state/toe_array
+    type: ToeArray
+- manual_twist:
+    topic_name: /mcu/command/manual_twist
+    type: Twist
