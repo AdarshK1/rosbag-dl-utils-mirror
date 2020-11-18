@@ -1,0 +1,14 @@
+-  odom_out:
+     topic_name: /camera/odom/sample
+     type: Odometry
+-  RGB:
+     topic_name: /d435i/color/image_raw
+     type: Image
+     is_depth: False
+-  Depth:
+     topic_name: /d435i/depth/image_rect_raw
+     type: Image
+     is_depth: True
+-  pcl_buffer:
+        topic_name: /tm/pointcloud/pcl_buffer
+        type: PointCloud

@@ -1,0 +1,8 @@
+-  tm_mesh:
+     topic_name: /tm/pointcloud/mesh
+     type: Mesh
+     extra-args:
+       - skip_frame: 1
+-  pcl_buffer:
+     topic_name: /tm/pointcloud/pcl_buffer
+     type: PointCloud
