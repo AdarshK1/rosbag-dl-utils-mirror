@@ -6,7 +6,7 @@ Written by Adarsh Kulkarni <adarsh@ghostrobotics.io>
 import rospy
 from draper_msgs.msg import ToeArray, Toe
 from geometry_msgs.msg import Point
-from Base_Serializer import BaseSerializer
+from serializers.Base_Serializer import BaseSerializer
 import numpy as np
 
 

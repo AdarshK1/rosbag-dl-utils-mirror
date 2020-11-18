@@ -5,7 +5,7 @@ Written by Adarsh Kulkarni <adarsh@ghostrobotics.io>
 
 import rospy
 from sensor_msgs.msg import CameraInfo
-from Base_Serializer import BaseSerializer
+from serializers.Base_Serializer import BaseSerializer
 import numpy as np
 
 

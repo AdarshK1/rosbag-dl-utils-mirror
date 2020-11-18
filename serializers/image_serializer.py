@@ -7,7 +7,7 @@ import rospy
 # from cv_bridge import CvBridge
 # import cv2
 from sensor_msgs.msg import Image
-from Base_Serializer import BaseSerializer
+from serializers.Base_Serializer import BaseSerializer
 import sys
 import numpy as np
 
