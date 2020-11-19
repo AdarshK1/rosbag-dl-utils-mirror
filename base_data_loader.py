@@ -11,7 +11,7 @@ from torchvision import transforms, utils
 import copy
 import cv2
 import yaml
-from bag_harvester.Base_Serializer import BaseSerializer
+from serializers.Base_Serializer import BaseSerializer
 
 # TODO(akulkarni) i realized this whole setup requires that the dataset is held in RAM...that kinda sucks
 # with big datasets so fix that sometime soon (should be doable just refactoring tbh)
@@ -19,7 +19,7 @@ from bag_harvester.Base_Serializer import BaseSerializer
 
 class BaseDataset(Dataset):
 
-    def __init__(self, config_file, sub_dir, samples_per_second=30, skip_last_n_seconds=5, skip_first_n_samples=15):
+    def __init__(self, config_file, sub_dir, samples_per_second=30, skip_last_n_seconds=5, skip_first_n_seconds=2):
 
         self.data_dir = sub_dir
 
@@ -39,11 +39,11 @@ class BaseDataset(Dataset):
 
         # this is super inconvenient, but it works
         self.skip_last_n_seconds = skip_last_n_seconds
-        self.skip_first_n_samples = skip_first_n_samples
+        self.skip_first_n_seconds = skip_first_n_seconds
 
         self.actual_end_time = int(min(np.array(self.end_times)))
-        self.actual_time_length = self.actual_end_time - self.skip_last_n_seconds
-        self.num_samples = self.actual_time_length * self.samples_per_second - self.skip_first_n_samples
+        self.actual_time_length = self.actual_end_time - self.skip_last_n_seconds - self.skip_first_n_seconds
+        self.num_samples = self.actual_time_length * self.samples_per_second
 
     def setup_data_holders(self):
         for topic_dir in self.topic_dirs:
@@ -55,11 +55,11 @@ class BaseDataset(Dataset):
                 if idx == 0:
                     self.initial_times[topic_dir] = datum[-1]
 
-                self.data_holder[topic_dir][datum[-1] - self.initial_times[topic_dir]] = datum[:-1]
+                self.data_holder[topic_dir][datum[-1] - self.initial_times[topic_dir]] = item
 
                 self.raw_end_times[topic_dir] = datum[-1]
 
-            self.data_list_holder[topic_dir] = list([(k, v) for k, v in self.data_holder[topic_dir].items()])
+            self.data_list_holder[topic_dir] = list(self.data_holder[topic_dir].items())
 
     def read_config_file(self, config_file):
         names = []
@@ -82,14 +82,16 @@ class BaseDataset(Dataset):
 
     def __getitem__(self, idx):
 
-        idx = idx + self.skip_first_n_samples
+        # print("idx", idx)
+        idx = idx + self.skip_first_n_seconds * self.samples_per_second
+        # print("idx", idx)
 
         # TODO (akulkarni) comment this bs
         indices = {}
         vals = {}
         for topic_dir in self.topic_dirs:
             try:
-                indices[topic_dir] = (max([idx for idx, (k, v) in enumerate(self.data_holder[topic_dir].items()) if
+                indices[topic_dir] = (max([i for i, (k, v) in enumerate(self.data_list_holder[topic_dir]) if
                                            k <= (idx * self.actual_time_length / self.num_samples)]))
             except ValueError:
                 print("Error: ",
@@ -99,7 +101,12 @@ class BaseDataset(Dataset):
                       self.num_samples,
                       self.actual_time_length,
                       (idx * self.actual_time_length / self.num_samples))
-            vals[topic_dir] = (self.data_list_holder[topic_dir][indices[topic_dir]][1])
+
+            filename = self.data_list_holder[topic_dir][indices[topic_dir]][1]
+            # print(filename)
+            # filename = self.data_holder[topic_dir].items()[indices[topic_dir]][1]
+            datum = np.load(filename, allow_pickle=True)
+            vals[topic_dir] = datum[:-1]
 
         return vals
 
@@ -112,5 +119,4 @@ if __name__ == "__main__":
     dset = BaseDataset(config_file, sample_fname)
     for i in range(N):
         vals = dset.__getitem__(0)
-        # for k, v in vals.items():
-        #     print(k, v.shape)
+        print(vals)
