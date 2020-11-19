@@ -28,12 +28,14 @@ import rospy
 from typing import List
 
 
-def process_yaml(filename, output_dir_name) -> List[BaseSerializer]:
+def process_yaml(filename, output_dir_name, bag_name) -> List[BaseSerializer]:
     parsed_yaml = dict()
     serializer_list = list()
 
     if output_dir_name[-1] != '/':
         output_dir_name += '/'
+
+    output_dir_name += bag_name.split(".")[0] + '/'
 
     with open(filename, 'r') as stream:
         try:
@@ -109,12 +111,19 @@ def process_yaml(filename, output_dir_name) -> List[BaseSerializer]:
 if __name__ == '__main__':
     # arg parse lots of stuff
     parser = argparse.ArgumentParser(description="")
-    parser.add_argument("live", help="Run live without rosbag", default=False)
-    parser.add_argument("bag_file", help="Input ROS bag.")
-    parser.add_argument("output_dir", help="Output directory.")
-    parser.add_argument("config_file", help="Config File")
+    parser.add_argument("--live", help="Run live without rosbag", default=False)
+    parser.add_argument("--bag_file", help="Input ROS bag.")
+    parser.add_argument("--bag_file_list", help="Text file with list of rosbags", default=None)
+    parser.add_argument("--output_dir", help="Output directory.", default="./data")
+    parser.add_argument("--config_file", help="Config File", default="harvester_configs/simple_learned_dynamics.yaml")
 
     args = parser.parse_args()
+
+    bags = []
+    if args.bag_file_list is not None:
+        bags = open(args.bag_file_list, 'r').readlines()
+    else:
+        bags = [args.bag_file]
 
     if not args.live:
         # start roscore and init the rosnode
@@ -123,28 +132,32 @@ if __name__ == '__main__':
         time.sleep(1)
         rospy.init_node("bag_harvester", anonymous=True)
 
-        # ----------- serializing -------------------
-        # this creates a bunch of subscribers, needs to be after rospy.init
-        serializer_list = process_yaml(args.config_file, args.output_dir)
+        for bag in bags[0:1]:
+            bag_name = bag.split("/")[-1]
+            # ----------- serializing -------------------
+            # this creates a bunch of subscribers, needs to be after rospy.init
+            serializer_list = process_yaml(args.config_file, args.output_dir, bag_name)
 
-        # start the rosbag to serialize from
-        rosbag_process = subprocess.run(["rosbag", "play", "--clock", "-r", "0.25", args.bag_file])
+            # start the rosbag to serialize from
+            print(bag)
+            rosbag_process = subprocess.run(["rosbag", "play", "--clock", "-r", "0.25", bag.strip()])
+            # rosbag_process = subprocess.run(["rosbag", "info", bag.strip()])
 
-        # we did it!
-        rospy.logwarn("Completed return code for rosbag: {}".format(rosbag_process.returncode))
+            # we did it!
+            rospy.logwarn("Completed return code for rosbag: {}".format(rosbag_process.returncode))
 
-        # now kill everything
-        if rosbag_process.returncode == 0:
-            rospy.logwarn("Completed bag successfully!")
-            subprocess.Popen(['pkill', '-f', 'ros'])
+            # now kill everything
+            if rosbag_process.returncode == 0:
+                rospy.logwarn("Completed parsing {} successfully!".format(bag_name))
 
+        subprocess.Popen(['pkill', '-f', 'ros'])
         print("Killed all ROS")
 
     else:
         time.sleep(1)
         rospy.init_node("bag_harvester", anonymous=True)
 
-        serializer_list = process_yaml(args.config_file, args.output_dir)
+        serializer_list = process_yaml(args.config_file, args.output_dir, "live")
 
         while not rospy.is_shutdown():
             time.sleep(1)
