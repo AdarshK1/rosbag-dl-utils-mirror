@@ -26,7 +26,7 @@ from serializers.ToeArray_Serializer import ToeArraySerializer
 
 import rospy
 from typing import List
-
+import os
 
 def process_yaml(filename, output_dir_name, bag_name) -> List[BaseSerializer]:
     parsed_yaml = dict()
@@ -125,22 +125,27 @@ if __name__ == '__main__':
     else:
         bags = [args.bag_file]
 
+
     if not args.live:
-        # start roscore and init the rosnode
-        roscore_process = subprocess.Popen("roscore")
 
-        time.sleep(1)
-        rospy.init_node("bag_harvester", anonymous=True)
+        for bag in bags:
+            # start roscore and init the rosnode
+            roscore_process = subprocess.Popen("roscore")
 
-        for bag in bags[0:1]:
+            time.sleep(1)
+            rospy.init_node("bag_harvester", anonymous=True)
             bag_name = bag.split("/")[-1]
+            # start the rosbag to serialize from, but only if we havent done it yet
+            if bag_name.split("/")[-1][:-5] in list(os.listdir(args.output_dir)):
+                print("We did this one already:", bag_name)
+                subprocess.call(['pkill', '-f', 'ros'])
+                continue
+
             # ----------- serializing -------------------
             # this creates a bunch of subscribers, needs to be after rospy.init
             serializer_list = process_yaml(args.config_file, args.output_dir, bag_name)
 
-            # start the rosbag to serialize from
-            print(bag)
-            rosbag_process = subprocess.run(["rosbag", "play", "--clock", "-r", "0.25", bag.strip()])
+            rosbag_process = subprocess.run(["rosbag", "play", "--clock", "-r", "0.5", bag.strip()])
             # rosbag_process = subprocess.run(["rosbag", "info", bag.strip()])
 
             # we did it!
@@ -150,8 +155,8 @@ if __name__ == '__main__':
             if rosbag_process.returncode == 0:
                 rospy.logwarn("Completed parsing {} successfully!".format(bag_name))
 
-        subprocess.Popen(['pkill', '-f', 'ros'])
-        print("Killed all ROS")
+            subprocess.Popen(['pkill', '-f', 'ros'])
+            print("Killed all ROS")
 
     else:
         time.sleep(1)
