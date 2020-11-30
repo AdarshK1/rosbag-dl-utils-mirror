@@ -17,9 +17,9 @@
 - occupancy_gt:
     topic_name: /ground_truth_planning/map
     type: Map
-- goal:
-    topic_name: /move_base_simple/goal
-    type: Pose
+#- goal:
+#    topic_name: /move_base_simple/goal
+#    type: Pose
 - global_plan:
       topic_name: /move_base/GlobalPlanner/plan
       type: Path
