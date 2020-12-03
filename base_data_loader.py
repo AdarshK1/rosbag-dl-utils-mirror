@@ -42,7 +42,7 @@ class BaseDataset(Dataset):
 
         self.actual_end_time = int(min(np.array([i for i in self.end_times if i > 0.1])))
 
-        print(self.end_times)
+        # print(self.end_times)
         self.actual_time_length = self.actual_end_time - self.skip_last_n_seconds - self.skip_first_n_seconds
         self.num_samples = self.actual_time_length * self.samples_per_second
 
@@ -50,7 +50,7 @@ class BaseDataset(Dataset):
         for key in self.data_holder.keys():
             self.frequencies[key] = len(self.data_holder[key]) / (sorted(list(self.data_holder[key].keys()))[-1] + 1E-3)
 
-        print("init", self.frequencies)
+        # print("init", self.frequencies)
 
     def setup_data_holders(self, verbose=True):
         for topic_dir in self.topic_dirs:
@@ -117,8 +117,10 @@ class BaseDataset(Dataset):
 
                 N_seconds = 5
 
-                max_check = np.clip(approx_i + int(self.frequencies[topic_dir]) * N_seconds, 0, len(self.data_list_holder[topic_dir]) - 1)
-                min_check = np.clip(approx_i - int(self.frequencies[topic_dir]) * N_seconds, 0, len(self.data_list_holder[topic_dir]) - 1)
+                max_check = np.clip(approx_i + int(self.frequencies[topic_dir]) * N_seconds, 0,
+                                    len(self.data_list_holder[topic_dir]) - 1)
+                min_check = np.clip(approx_i - int(self.frequencies[topic_dir]) * N_seconds, 0,
+                                    len(self.data_list_holder[topic_dir]) - 1)
                 max_i_v2 = 0
                 # print(min_check, max_check)
                 for j in range(min_check, max_check + 1):
@@ -130,7 +132,8 @@ class BaseDataset(Dataset):
 
             except ValueError:
                 print(self.frequencies)
-                print("idx", idx, "time_per_sample", self.actual_time_length / self.num_samples, "self", self.frequencies[topic_dir], topic_dir)
+                print("idx", idx, "time_per_sample", self.actual_time_length / self.num_samples, "self",
+                      self.frequencies[topic_dir], topic_dir)
 
                 print("Error: ",
                       topic_dir,
