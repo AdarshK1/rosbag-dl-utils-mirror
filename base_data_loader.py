@@ -30,6 +30,8 @@ class BaseDataset(Dataset):
         self.initial_times = {}
         self.raw_end_times = {}
 
+        self.stamps = {}
+
         self.setup_data_holders()
 
         self.end_times = [sorted(list(self.data_holder[key].keys()))[-1] for key in self.data_holder.keys()]
@@ -81,6 +83,7 @@ class BaseDataset(Dataset):
                         print(pcent_complete, "%")
 
             self.data_list_holder[topic_dir] = list(self.data_holder[topic_dir].items())
+            self.stamps[topic_dir] = np.array(list(self.data_holder[topic_dir].keys()))
 
     def read_config_file(self, config_file):
         names = []
@@ -113,21 +116,23 @@ class BaseDataset(Dataset):
             try:
                 time_per_sample = self.actual_time_length / self.num_samples
                 time_point = idx * time_per_sample
-                approx_i = int(time_point * self.frequencies[topic_dir])
+                #approx_i = int(time_point * self.frequencies[topic_dir])
+
+                #print("Approx i: " + str(approx_i))
 
                 N_seconds = 5
 
-                max_check = np.clip(approx_i + int(self.frequencies[topic_dir]) * N_seconds, 0,
-                                    len(self.data_list_holder[topic_dir]) - 1)
-                min_check = np.clip(approx_i - int(self.frequencies[topic_dir]) * N_seconds, 0,
-                                    len(self.data_list_holder[topic_dir]) - 1)
-                max_i_v2 = 0
+                #max_check = np.clip(approx_i + int(self.frequencies[topic_dir]) * N_seconds, 0,
+                #                    len(self.data_list_holder[topic_dir]) - 1)
+                #min_check = np.clip(approx_i - int(self.frequencies[topic_dir]) * N_seconds, 0,
+                #                    len(self.data_list_holder[topic_dir]) - 1)
+                max_i_v2 = np.argmax(self.stamps[topic_dir] > time_point)
                 # print(min_check, max_check)
-                for j in range(min_check, max_check + 1):
-                    k = self.data_list_holder[topic_dir][j][0]
-                    if k > time_point:
-                        max_i_v2 = j - 1
-                        break
+                #for j in range(min_check, max_check + 1):
+                #    k = self.data_list_holder[topic_dir][j][0]
+                #    if k > time_point:
+                #        max_i_v2 = j - 1
+                #        break
                 indices[topic_dir] = max_i_v2
 
             except ValueError:
@@ -148,6 +153,9 @@ class BaseDataset(Dataset):
             # filename = self.data_holder[topic_dir].items()[indices[topic_dir]][1]
             datum = np.load(filename, allow_pickle=True)
             vals[topic_dir] = datum[:-1]
+
+            print("idx: " + str(idx))
+            print(topic_dir + " ind: " + str(indices[topic_dir]))
 
         return vals
 
