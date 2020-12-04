@@ -18,6 +18,7 @@ from serializers.Odom_serializer import OdomSerializer
 from serializers.Pose_Serializer import PoseSerializer
 # from serializers.orb_image_serializer import ImageORBSerializer
 from serializers.FloatArr_Serializer import FloatArrSerializer
+from serializers.IntArr_Serializer import IntArrSerializer
 from serializers.CamInfo_Serializer import CamInfoSerializer
 from serializers.Twist_Serializer import TwistSerializer
 from serializers.Map_Serializer import MapSerializer
@@ -83,6 +84,10 @@ def process_yaml(filename, output_dir_name, bag_name) -> List[BaseSerializer]:
 
             elif type == "FloatArray":
                 ser = FloatArrSerializer(topic_name, directory_name=output_dir_name)
+                rospy.logdebug("Created {} Serializer listening to {}".format(type, topic_name))
+
+            elif type == "IntArray":
+                ser = IntArrSerializer(topic_name, directory_name=output_dir_name)
                 rospy.logdebug("Created {} Serializer listening to {}".format(type, topic_name))
 
             elif type == "Twist":
