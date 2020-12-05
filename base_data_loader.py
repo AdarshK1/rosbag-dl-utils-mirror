@@ -40,7 +40,7 @@ class BaseDataset(Dataset):
 
         # this is super inconvenient, but it works
         self.skip_last_n_seconds = skip_last_n_seconds
-        self.skip_first_n_seconds = max(skip_first_n_seconds, self.skip_first_n_seconds)
+        self.skip_first_n_seconds = max(skip_first_n_seconds, int(self.skip_first_n_seconds))
 
         self.actual_end_time = int(min(np.array([i for i in self.end_times if i > 0.1])))
 
