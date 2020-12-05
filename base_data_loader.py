@@ -40,7 +40,7 @@ class BaseDataset(Dataset):
 
         # this is super inconvenient, but it works
         self.skip_last_n_seconds = skip_last_n_seconds
-        self.skip_first_n_seconds = skip_first_n_seconds
+        self.skip_first_n_seconds = max(skip_first_n_seconds, self.skip_first_n_seconds)
 
         self.actual_end_time = int(min(np.array([i for i in self.end_times if i > 0.1])))
 
@@ -84,6 +84,22 @@ class BaseDataset(Dataset):
 
             self.data_list_holder[topic_dir] = list(self.data_holder[topic_dir].items())
             self.stamps[topic_dir] = np.array(list(self.data_holder[topic_dir].keys()))
+
+        offsets = np.zeros(len(self.topic_dirs))
+        min_offset = 1e20
+        for i, topic_dir in enumerate(self.topic_dirs):
+            if self.initial_times[topic_dir] < min_offset:
+                min_offset = self.initial_times[topic_dir]
+
+        max_add = 0
+        for topic_dir in self.topic_dirs:
+            add = self.initial_times[topic_dir] - min_offset
+            if add > max_add:
+                max_add = add
+            self.stamps[topic_dir] += add
+            print(self.initial_times[topic_dir] - min_offset)
+
+        self.skip_first_n_seconds = max_add
 
     def read_config_file(self, config_file):
         names = []
