@@ -78,7 +78,7 @@ class BaseDataset(Dataset):
                 self.raw_end_times[topic_dir] = timing
 
                 if verbose and len(filenames) > 10:
-                    if idx % (len(filenames) // 10) == 0 and idx > 0:
+                    if idx % (len(filenames) // 4) == 0 and idx > 0:
                         pcent_complete = round(idx / len(filenames) * 100)
                         print(pcent_complete, "%")
 
@@ -170,8 +170,8 @@ class BaseDataset(Dataset):
             datum = np.load(filename, allow_pickle=True)
             vals[topic_dir] = datum[:-1]
 
-            print("idx: " + str(idx))
-            print(topic_dir + " ind: " + str(indices[topic_dir]))
+            # print("idx: " + str(idx))
+            # print(topic_dir + " ind: " + str(indices[topic_dir]))
 
         return vals
 

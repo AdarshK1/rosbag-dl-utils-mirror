@@ -35,7 +35,7 @@ class ImageSerializer(BaseSerializer):
 
         # save
         file_name = (self.filename_base + self.file_ext).format(self.counter)
-        np.save(file_name, np.array([img, rospy.get_time()]))
+        np.save(file_name, np.array([img, rospy.get_time()], dtype=object))
         # cv2.imwrite(file_name, np.array([img, rospy.get_time()]))
 
         # increment
