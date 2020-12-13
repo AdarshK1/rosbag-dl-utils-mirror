@@ -6,16 +6,19 @@
     type: Image
     is_depth: False
     channels: 3
-- semantic_out:
-    topic_name: /husky/semantic_camera/image_raw
-    type: Image
-    is_depth: False
-    channels: 3
+#- semantic_out:
+#    topic_name: /husky/semantic_camera/image_raw
+#    type: Image
+#    is_depth: False
+#    channels: 3
 - occupancy:
     topic_name: /map
     type: Map
+- occupancy_gt:
+    topic_name: /ground_truth_planning/map
+    type: Map
 - goal:
-    topic_name: /move_base_simple/goal
+    topic_name: /move_base/current_goal
     type: Pose
 - global_plan:
       topic_name: /move_base/GlobalPlanner/plan
@@ -26,3 +29,9 @@
 - gt_global_plan:
     topic_name: /ground_truth_planning/move_base/GlobalPlanner/plan
     type: Path
+- gt_mp_plan:
+    topic_name: /ground_truth_planning/mp_sampled_path
+    type: Path
+- mp_int_array:
+    topic_name: /ground_truth_planning/mp_indices_list
+    type: IntArray

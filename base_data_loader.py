@@ -30,6 +30,8 @@ class BaseDataset(Dataset):
         self.initial_times = {}
         self.raw_end_times = {}
 
+        self.stamps = {}
+
         self.setup_data_holders()
 
         self.end_times = [sorted(list(self.data_holder[key].keys()))[-1] for key in self.data_holder.keys()]
@@ -38,67 +40,66 @@ class BaseDataset(Dataset):
 
         # this is super inconvenient, but it works
         self.skip_last_n_seconds = skip_last_n_seconds
-        self.skip_first_n_seconds = skip_first_n_seconds
+        self.skip_first_n_seconds = max(skip_first_n_seconds, int(self.skip_first_n_seconds))
 
-        self.actual_end_time = int(min(np.array(self.end_times)))
+        self.actual_end_time = int(min(np.array([i for i in self.end_times if i > 0.1])))
+
+        # print(self.end_times)
         self.actual_time_length = self.actual_end_time - self.skip_last_n_seconds - self.skip_first_n_seconds
         self.num_samples = self.actual_time_length * self.samples_per_second
 
         self.frequencies = {}
         for key in self.data_holder.keys():
-            self.frequencies[key] = len(self.data_holder[key]) / sorted(list(self.data_holder[key].keys()))[-1]
+            self.frequencies[key] = len(self.data_holder[key]) / (sorted(list(self.data_holder[key].keys()))[-1] + 1E-3)
 
-        # print(self.frequencies)
+        # print("init", self.frequencies)
 
     def setup_data_holders(self, verbose=True):
         for topic_dir in self.topic_dirs:
             self.data_holder[topic_dir] = {}
-            t1 = time.time()
             filenames = sorted(glob.glob(self.data_dir + topic_dir + "/*"))
-            t2 = time.time()
             print("Parsing Topic: {}, Count: {}".format(topic_dir, len(filenames)))
-            print("Sort time:", t2 - t1)
-
-            nbytes = 0
-            offset = 0
             for idx, item in enumerate(filenames):
-                if idx == 0:
+                if "map" in item or "odom" in item:
                     nbytes = os.stat(item).st_size
                     offset = int(nbytes) - 8
-                tf1 = time.time()
-                mm = np.memmap(item, np.float, 'r', offset)
-                # print(int(a.st_size))
-                # datum = np.load(item, allow_pickle=True, mmap_mode='r')
-                # print(datum[-1], mm[0])
-                # tf2 = time.time()
-                timing = mm[0]
-                # timing = datum[-1]
+                    mm = np.memmap(item, np.float, 'r', offset)
+
+                    timing = mm[0]
+                else:
+                    loaded = np.load(item, allow_pickle=True)
+                    timing = loaded[-1]
+                    del loaded
+
                 if idx == 0:
                     self.initial_times[topic_dir] = timing
-                tf3 = time.time()
-                self.data_holder[topic_dir][timing - self.initial_times[topic_dir]] = item
-                tf4 = time.time()
-                self.raw_end_times[topic_dir] = timing
-                # del datum
 
-                if verbose:
-                    if idx % (len(filenames) // 10) == 0:
+                self.data_holder[topic_dir][timing - self.initial_times[topic_dir]] = item
+                self.raw_end_times[topic_dir] = timing
+
+                if verbose and len(filenames) > 10:
+                    if idx % (len(filenames) // 4) == 0 and idx > 0:
                         pcent_complete = round(idx / len(filenames) * 100)
                         print(pcent_complete, "%")
-                tflast = time.time()
 
-                # print("load: {:.8f}".format(tf2 - tf1))
-                # print("if: {:.8f}".format(tf3 - tf2))
-                # print("set item: {:.8f}".format(tf4 - tf3))
-                # print("end time verbose: {:.8f}".format(tflast - tf4))
-
-            t3 = time.time()
             self.data_list_holder[topic_dir] = list(self.data_holder[topic_dir].items())
-            t_last = time.time()
-            print("dict to list: {:.48}".format(t_last - t3))
+            self.stamps[topic_dir] = np.array(list(self.data_holder[topic_dir].keys()))
 
-            print("Full topic: {:.8f}".format(t_last - t1))
-            print("\n")
+        offsets = np.zeros(len(self.topic_dirs))
+        min_offset = 1e20
+        for i, topic_dir in enumerate(self.topic_dirs):
+            if self.initial_times[topic_dir] < min_offset:
+                min_offset = self.initial_times[topic_dir]
+
+        max_add = 0
+        for topic_dir in self.topic_dirs:
+            add = self.initial_times[topic_dir] - min_offset
+            if add > max_add:
+                max_add = add
+            self.stamps[topic_dir] += add
+            print(self.initial_times[topic_dir] - min_offset)
+
+        self.skip_first_n_seconds = max_add
 
     def read_config_file(self, config_file):
         names = []
@@ -120,7 +121,6 @@ class BaseDataset(Dataset):
         return self.num_samples
 
     def __getitem__(self, idx):
-
         # print("idx", idx)
         idx = idx + self.skip_first_n_seconds * self.samples_per_second
         # print("idx", idx)
@@ -130,43 +130,32 @@ class BaseDataset(Dataset):
         vals = {}
         for topic_dir in self.topic_dirs:
             try:
-                # t1 = time.time()
-                # indices[topic_dir] = (max([i for i, (k, v) in enumerate(self.data_list_holder[topic_dir]) if
-                #                            k <= (idx * self.actual_time_length / self.num_samples)]))
-                # t2 = time.time()
-                # print("list comp time\t {:.8f}".format(t2-t1))
-                #
-                # max_i = 0
                 time_per_sample = self.actual_time_length / self.num_samples
                 time_point = idx * time_per_sample
-                # idx = k / time_per_sample
-                # for i, (k, v) in enumerate(self.data_list_holder[topic_dir]):
-                #     if k > time_point:
-                #         max_i = i - 1
-                #         break
-                t3 = time.time()
-                # print("for loop time\t {:.8f}".format(t3-t2))
+                #approx_i = int(time_point * self.frequencies[topic_dir])
 
-                approx_i = int(time_point * self.frequencies[topic_dir])
+                #print("Approx i: " + str(approx_i))
 
                 N_seconds = 5
 
-                max_check = np.clip(approx_i + int(self.frequencies[topic_dir]) * N_seconds, 0, len(self.data_list_holder[topic_dir]) - 1)
-                min_check = np.clip(approx_i - int(self.frequencies[topic_dir]) * N_seconds, 0, len(self.data_list_holder[topic_dir]) - 1)
-                max_i_v2 = 0
-                for j in range(min_check, max_check):
-                    k = self.data_list_holder[topic_dir][j][0]
-                    if k > time_point:
-                        max_i_v2 = j - 1
-                        break
+                #max_check = np.clip(approx_i + int(self.frequencies[topic_dir]) * N_seconds, 0,
+                #                    len(self.data_list_holder[topic_dir]) - 1)
+                #min_check = np.clip(approx_i - int(self.frequencies[topic_dir]) * N_seconds, 0,
+                #                    len(self.data_list_holder[topic_dir]) - 1)
+                max_i_v2 = np.argmax(self.stamps[topic_dir] > time_point)
+                # print(min_check, max_check)
+                #for j in range(min_check, max_check + 1):
+                #    k = self.data_list_holder[topic_dir][j][0]
+                #    if k > time_point:
+                #        max_i_v2 = j - 1
+                #        break
                 indices[topic_dir] = max_i_v2
 
-                t4 = time.time()
-                # print("approx time\t {:.8f}".format(t4-t3))
-
-                # print("results", indices[topic_dir], max_i, max_i_v2)
-
             except ValueError:
+                print(self.frequencies)
+                print("idx", idx, "time_per_sample", self.actual_time_length / self.num_samples, "self",
+                      self.frequencies[topic_dir], topic_dir)
+
                 print("Error: ",
                       topic_dir,
                       idx,
@@ -180,6 +169,9 @@ class BaseDataset(Dataset):
             # filename = self.data_holder[topic_dir].items()[indices[topic_dir]][1]
             datum = np.load(filename, allow_pickle=True)
             vals[topic_dir] = datum[:-1]
+
+            # print("idx: " + str(idx))
+            # print(topic_dir + " ind: " + str(indices[topic_dir]))
 
         return vals
 

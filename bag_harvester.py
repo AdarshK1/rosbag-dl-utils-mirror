@@ -18,6 +18,7 @@ from serializers.Odom_serializer import OdomSerializer
 from serializers.Pose_Serializer import PoseSerializer
 # from serializers.orb_image_serializer import ImageORBSerializer
 from serializers.FloatArr_Serializer import FloatArrSerializer
+from serializers.IntArr_Serializer import IntArrSerializer
 from serializers.CamInfo_Serializer import CamInfoSerializer
 from serializers.Twist_Serializer import TwistSerializer
 from serializers.Map_Serializer import MapSerializer
@@ -26,6 +27,7 @@ from serializers.ToeArray_Serializer import ToeArraySerializer
 
 import rospy
 from typing import List
+import os
 
 
 def process_yaml(filename, output_dir_name, bag_name) -> List[BaseSerializer]:
@@ -85,6 +87,10 @@ def process_yaml(filename, output_dir_name, bag_name) -> List[BaseSerializer]:
                 ser = FloatArrSerializer(topic_name, directory_name=output_dir_name)
                 rospy.logdebug("Created {} Serializer listening to {}".format(type, topic_name))
 
+            elif type == "IntArray":
+                ser = IntArrSerializer(topic_name, directory_name=output_dir_name)
+                rospy.logdebug("Created {} Serializer listening to {}".format(type, topic_name))
+
             elif type == "Twist":
                 ser = TwistSerializer(topic_name, directory_name=output_dir_name)
                 rospy.logdebug("Created {} Serializer listening to {}".format(type, topic_name))
@@ -126,21 +132,25 @@ if __name__ == '__main__':
         bags = [args.bag_file]
 
     if not args.live:
+        time.sleep(1)
         # start roscore and init the rosnode
         roscore_process = subprocess.Popen("roscore")
-
-        time.sleep(1)
+        time.sleep(2)
         rospy.init_node("bag_harvester", anonymous=True)
 
-        for bag in bags[0:1]:
+        for bag in bags:
             bag_name = bag.split("/")[-1]
+            # start the rosbag to serialize from, but only if we havent done it yet
+            if bag_name.split("/")[-1][:-5] in list(os.listdir(args.output_dir)):
+                print("We did this one already:", bag_name)
+                # subprocess.call(['pkill', '-f', 'ros'])
+                continue
+
             # ----------- serializing -------------------
             # this creates a bunch of subscribers, needs to be after rospy.init
             serializer_list = process_yaml(args.config_file, args.output_dir, bag_name)
 
-            # start the rosbag to serialize from
-            print(bag)
-            rosbag_process = subprocess.run(["rosbag", "play", "--clock", "-r", "0.25", bag.strip()])
+            rosbag_process = subprocess.run(["rosbag", "play", "--clock", "-r", "0.5", bag.strip()])
             # rosbag_process = subprocess.run(["rosbag", "info", bag.strip()])
 
             # we did it!
@@ -152,6 +162,7 @@ if __name__ == '__main__':
 
         subprocess.Popen(['pkill', '-f', 'ros'])
         print("Killed all ROS")
+        time.sleep(5)
 
     else:
         time.sleep(1)
